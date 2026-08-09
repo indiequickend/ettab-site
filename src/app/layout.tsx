@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import NextTopLoader from "nextjs-toploader";
 import { SiteHeader } from "@/components/site-header";
+import { SessionProvider } from "@/components/session-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -31,8 +33,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <SiteHeader />
-        {children}
+        <NextTopLoader color="#1a7a4c" showSpinner={false} height={3} />
+        <SessionProvider>
+          <SiteHeader />
+          {children}
+        </SessionProvider>
       </body>
     </html>
   );
