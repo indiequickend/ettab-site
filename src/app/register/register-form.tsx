@@ -1,12 +1,11 @@
 "use client";
 
 import { useActionState } from "react";
-import { useFormStatus } from "react-dom";
 
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { SubmitButton } from "@/components/submit-button";
 import { registerAction, type RegisterState } from "./actions";
 
 const initialState: RegisterState = {};
@@ -16,15 +15,6 @@ const MEMBER_TYPES = [
   { value: "tour_operator", label: "Tour Operator" },
   { value: "car_vendor", label: "Car Vendor" },
 ];
-
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending} className="w-full">
-      {pending ? "Creating account..." : "Create account"}
-    </Button>
-  );
-}
 
 export function RegisterForm() {
   const [state, formAction] = useActionState(registerAction, initialState);
@@ -101,7 +91,7 @@ export function RegisterForm() {
 
       {state.formError && <p className="text-sm text-destructive">{state.formError}</p>}
 
-      <SubmitButton />
+      <SubmitButton label="Create account" pendingLabel="Creating account..." className="w-full" />
     </form>
   );
 }

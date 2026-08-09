@@ -10,7 +10,7 @@ export default function LoginPage() {
         <CardHeader>
           <CardTitle>Log in</CardTitle>
           <CardDescription>
-            Log in to the ETTAB Members Area.{" "}
+            Log in to the ETTAB Member.{" "}
             <Link href="/register" className="underline">
               Register instead
             </Link>

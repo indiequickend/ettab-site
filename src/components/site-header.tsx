@@ -1,5 +1,7 @@
 import Image from "next/image";
 
+import { InstallAppButton } from "@/components/install-app-button";
+
 export function SiteHeader() {
   return (
     <header className="flex items-center gap-3 border-b px-4 py-3 sm:px-6">
@@ -12,8 +14,9 @@ export function SiteHeader() {
         priority
       />
       <span className="text-base font-semibold tracking-tight sm:text-lg">
-        ETTAB Members Area
+        ETTAB Member
       </span>
+      <InstallAppButton className="ml-auto" />
     </header>
   );
 }

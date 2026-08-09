@@ -31,7 +31,8 @@ export function AdminLoginForm() {
       }
 
       const session = await getSession();
-      if (!session?.user.roles.includes("superadmin")) {
+      const isAdmin = session?.user.roles.some((role) => ["superadmin", "admin"].includes(role));
+      if (!isAdmin) {
         await signOut({ redirect: false });
         setError("This login is for site administrators only.");
         return;

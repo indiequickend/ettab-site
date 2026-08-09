@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>You're offline — ETTAB</title>
+    <style>
+      :root {
+        color-scheme: light;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        padding: 2rem;
+        text-align: center;
+        font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background: #ffffff;
+        color: #222222;
+      }
+      img {
+        width: 96px;
+        height: 96px;
+        border-radius: 50%;
+      }
+      h1 {
+        font-size: 1.25rem;
+        margin: 0;
+      }
+      p {
+        margin: 0;
+        color: #555555;
+        max-width: 24rem;
+      }
+      button {
+        margin-top: 0.5rem;
+        padding: 0.5rem 1.25rem;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #ffffff;
+        background: #1a7a4c;
+        border: none;
+        border-radius: 0.5rem;
+        cursor: pointer;
+      }
+      button:hover {
+        opacity: 0.9;
+      }
+    </style>
+  </head>
+  <body>
+    <img src="/icons/icon-192.png" alt="ETTAB" />
+    <h1>You're offline</h1>
+    <p>Check your connection and try again.</p>
+    <button onclick="location.reload()">Retry</button>
+  </body>
+</html>

@@ -7,7 +7,8 @@
     "build": "cross-env NODE_ENV=production next build",
     "start": "cross-env NODE_ENV=production next start",
     "lint": "eslint",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "generate-icons": "tsx scripts/generate-pwa-icons.tsx"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

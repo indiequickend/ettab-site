@@ -8,7 +8,7 @@ export default function RegisterPage() {
         <CardHeader>
           <CardTitle>Register</CardTitle>
           <CardDescription>
-            Create your ETTAB Members Area account. You&apos;ll need to verify your email and
+            Create your ETTAB Member account. You&apos;ll need to verify your email and
             be approved by an admin before you can log in.
           </CardDescription>
         </CardHeader>
