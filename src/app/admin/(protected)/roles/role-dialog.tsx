@@ -69,7 +69,9 @@ export function RoleDialog({ role }: RoleDialogProps) {
                 id="name"
                 name="name"
                 defaultValue={role?.name}
-                disabled={role?.isSystem}
+                readOnly={role?.isSystem}
+                aria-readonly={role?.isSystem}
+                className={role?.isSystem ? "cursor-not-allowed bg-muted/50" : undefined}
                 required
               />
               {state.fieldErrors?.name && (
