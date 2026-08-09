@@ -4,3 +4,6 @@ export { Settings, type ISettings } from "./Settings";
 export { Company, type ICompany, type MemberType } from "./Company";
 export { CompanyPartner, type ICompanyPartner } from "./CompanyPartner";
 export { Invite, type IInvite, type InviteStatus } from "./Invite";
+export { Place, type IPlace } from "./Place";
+export { Property, type IProperty } from "./Property";
+export { ServiceArea, type IServiceArea } from "./ServiceArea";

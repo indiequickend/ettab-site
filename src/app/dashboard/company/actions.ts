@@ -58,6 +58,8 @@ export async function setActiveCompanyAction(companyId: string): Promise<void> {
   });
 
   revalidatePath("/dashboard/company");
+  revalidatePath("/dashboard/properties");
+  revalidatePath("/dashboard/service-areas");
 }
 
 export async function updateCompanyDetailsAction(
