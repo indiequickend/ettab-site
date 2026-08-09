@@ -27,6 +27,28 @@ export async function sendVerificationEmail(
   });
 }
 
+export async function sendMemberCreatedEmail(
+  to: string,
+  name: string,
+  tempPassword: string
+): Promise<void> {
+  const loginUrl = `${process.env.NEXTAUTH_URL ?? ""}/login`;
+  await getResendClient().emails.send({
+    from: process.env.RESEND_FROM_EMAIL ?? "ETTAB Members <onboarding@resend.dev>",
+    to,
+    subject: "Your ETTAB Member account has been created",
+    html: `
+      <p>Hi ${name},</p>
+      <p>An ETTAB admin has created a member account for you. You can log in with:</p>
+      <ul>
+        <li>Email: ${to}</li>
+        <li>Temporary password: <strong>${tempPassword}</strong></li>
+      </ul>
+      <p><a href="${loginUrl}">Log in</a> and change your password from your account settings as soon as possible.</p>
+    `,
+  });
+}
+
 export async function sendAdminNewRegistrationEmail(
   recipients: { name: string; email: string }[],
   applicant: { name: string; email: string; companyName: string }
@@ -55,6 +77,25 @@ export async function sendAdminNewRegistrationEmail(
       }
     })
   );
+}
+
+export async function sendPartnerInviteEmail(
+  to: string,
+  companyName: string,
+  inviterName: string,
+  acceptUrl: string
+): Promise<void> {
+  await getResendClient().emails.send({
+    from: process.env.RESEND_FROM_EMAIL ?? "ETTAB Members <onboarding@resend.dev>",
+    to,
+    subject: `${inviterName} invited you to join ${companyName} on ETTAB Members`,
+    html: `
+      <p>Hi,</p>
+      <p>${inviterName} has invited you to join <strong>${companyName}</strong> as a partner on the ETTAB Member portal:</p>
+      <p><a href="${acceptUrl}">${acceptUrl}</a></p>
+      <p>This link expires in 7 days. If you weren't expecting this invite, you can ignore this email.</p>
+    `,
+  });
 }
 
 export async function sendApprovalDecisionEmail(

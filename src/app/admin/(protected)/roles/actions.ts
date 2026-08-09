@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { authOptions } from "@/lib/auth-options";
 import { connectToDatabase } from "@/lib/mongodb";
-import { getSessionPermissions, hasPermission } from "@/lib/permissions";
+import { getSessionPermissions, hasAnyPermission, hasPermission } from "@/lib/permissions";
 import { assignRolesSchema, roleFormSchema } from "@/lib/validation/admin";
 import { Role, User } from "@/models";
 
@@ -21,6 +21,18 @@ async function requireRolesManagePermission() {
   }
   const permissions = await getSessionPermissions(session.user.roles);
   if (!hasPermission(permissions, "roles.manage")) {
+    return { error: "You do not have permission to do this." } as const;
+  }
+  return { session } as const;
+}
+
+async function requireRolesAssignPermission() {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return { error: "Not authenticated." } as const;
+  }
+  const permissions = await getSessionPermissions(session.user.roles);
+  if (!hasAnyPermission(permissions, ["roles.manage", "roles.assign"])) {
     return { error: "You do not have permission to do this." } as const;
   }
   return { session } as const;
@@ -139,7 +151,7 @@ export async function updateUserRolesAction(
   _prevState: RoleFormState,
   formData: FormData
 ): Promise<RoleFormState> {
-  const auth = await requireRolesManagePermission();
+  const auth = await requireRolesAssignPermission();
   if ("error" in auth) {
     return { formError: auth.error };
   }
@@ -183,5 +195,6 @@ export async function updateUserRolesAction(
   await user.save();
 
   revalidatePath("/admin/roles");
+  revalidatePath("/admin/members");
   return {};
 }

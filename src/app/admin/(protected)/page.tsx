@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { connectToDatabase } from "@/lib/mongodb";
-import { getSessionPermissions, hasPermission, requireAdminSession } from "@/lib/permissions";
+import { getSessionPermissions, hasAnyPermission, hasPermission, requireAdminSession } from "@/lib/permissions";
 import { User } from "@/models";
 
 export default async function AdminDashboardPage() {
@@ -20,7 +20,7 @@ export default async function AdminDashboardPage() {
   const permissions = await getSessionPermissions(session.user.roles);
 
   const canApproveMembers = hasPermission(permissions, "members.approve");
-  const canManageRoles = hasPermission(permissions, "roles.manage");
+  const canAccessRoles = hasAnyPermission(permissions, ["roles.manage", "roles.assign"]);
   const canManageSettings = hasPermission(permissions, "settings.manage");
 
   let pendingCount = 0;
@@ -60,7 +60,7 @@ export default async function AdminDashboardPage() {
           </Card>
         )}
 
-        {canManageRoles && (
+        {canAccessRoles && (
           <Card>
             <CardHeader>
               <CardTitle>Roles</CardTitle>

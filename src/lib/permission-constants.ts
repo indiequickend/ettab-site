@@ -1,6 +1,8 @@
 export const PERMISSIONS = [
   "roles.manage",
+  "roles.assign",
   "members.approve",
+  "members.create",
   "settings.manage",
   "company.manage_own",
   "property.manage_own",
@@ -11,7 +13,9 @@ export type Permission = (typeof PERMISSIONS)[number];
 
 export const PERMISSION_LABELS: Record<Permission, string> = {
   "roles.manage": "Manage roles",
+  "roles.assign": "Assign roles to members",
   "members.approve": "Approve members",
+  "members.create": "Create members",
   "settings.manage": "Manage settings",
   "company.manage_own": "Manage own company",
   "property.manage_own": "Manage own properties",

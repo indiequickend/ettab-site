@@ -1,6 +1,9 @@
+import Link from "next/link";
 import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
 
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { authOptions } from "@/lib/auth-options";
 import { SignOutButton } from "./sign-out-button";
 
@@ -19,6 +22,12 @@ export default async function DashboardPage() {
       <p className="text-sm text-muted-foreground sm:text-base">
         Roles: {session.user.roles.join(", ") || "member"}
       </p>
+      <Link href="/dashboard/company" className={cn(buttonVariants({ variant: "outline" }))}>
+        Manage my company
+      </Link>
+      <Link href="/dashboard/account" className={cn(buttonVariants({ variant: "outline" }))}>
+        Account settings
+      </Link>
       <SignOutButton />
     </main>
   );

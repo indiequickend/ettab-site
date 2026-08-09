@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import {
   Table,
   TableBody,
@@ -7,80 +9,204 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PaginationLinks } from "@/components/admin/pagination-links";
 import { connectToDatabase } from "@/lib/mongodb";
-import { requirePermission } from "@/lib/permissions";
-import { CompanyPartner, User } from "@/models";
+import { hasPermission, requirePermission } from "@/lib/permissions";
+import { cn } from "@/lib/utils";
+import { CompanyPartner, Role, User } from "@/models";
 import type { ICompany } from "@/models";
 import { MemberRowActions } from "./member-row-actions";
 
-export default async function AdminMembersPage() {
-  await requirePermission("members.approve");
+const PAGE_SIZE = 20;
+
+function parsePage(value: string | undefined, totalPages: number): number {
+  const parsed = value ? parseInt(value, 10) : 1;
+  const safe = Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+  return Math.min(safe, totalPages);
+}
+
+function buildMembersHref(params: { tab: "pending" | "all"; pendingPage: number; allPage: number }) {
+  const search = new URLSearchParams();
+  search.set("tab", params.tab);
+  if (params.pendingPage > 1) search.set("pendingPage", String(params.pendingPage));
+  if (params.allPage > 1) search.set("allPage", String(params.allPage));
+  const qs = search.toString();
+  return `/admin/members${qs ? `?${qs}` : ""}`;
+}
+
+export default async function AdminMembersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string; pendingPage?: string; allPage?: string }>;
+}) {
+  const { permissions } = await requirePermission("members.approve");
+  const canCreateMembers = hasPermission(permissions, "members.create");
   await connectToDatabase();
 
-  const pending = await User.find({ status: "pending_approval" })
-    .sort({ createdAt: 1 })
-    .lean();
+  const sp = await searchParams;
+  const tab = sp.tab === "all" ? "all" : "pending";
+
+  const [pendingCount, approvedCount] = await Promise.all([
+    User.countDocuments({ status: "pending_approval" }),
+    User.countDocuments({ status: "approved" }),
+  ]);
+
+  const totalPendingPages = Math.max(1, Math.ceil(pendingCount / PAGE_SIZE));
+  const totalAllPages = Math.max(1, Math.ceil(approvedCount / PAGE_SIZE));
+  const pendingPage = parsePage(sp.pendingPage, totalPendingPages);
+  const allPage = parsePage(sp.allPage, totalAllPages);
+
+  const [pending, approvedUsers, roles] = await Promise.all([
+    User.find({ status: "pending_approval" })
+      .sort({ createdAt: 1 })
+      .skip((pendingPage - 1) * PAGE_SIZE)
+      .limit(PAGE_SIZE)
+      .lean(),
+    User.find({ status: "approved" })
+      .sort({ name: 1 })
+      .skip((allPage - 1) * PAGE_SIZE)
+      .limit(PAGE_SIZE)
+      .lean(),
+    Role.find().sort({ name: 1 }).lean(),
+  ]);
 
   const partners = await CompanyPartner.find({
-    userId: { $in: pending.map((user) => user._id) },
+    userId: { $in: [...pending.map((user) => user._id), ...approvedUsers.map((user) => user._id)] },
   }).populate<{ companyId: ICompany }>("companyId");
 
   const companyByUserId = new Map(partners.map((partner) => [partner.userId.toString(), partner.companyId]));
+  const roleOptions = roles.map((role) => ({ id: role._id.toString(), name: role.name }));
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Pending registrations</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Approve or reject members who have verified their email and are awaiting admin approval.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Members</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Approve or reject pending registrations, and browse the full member roster.
+          </p>
+        </div>
+        {canCreateMembers && (
+          <Link href="/admin/members/new" className={cn(buttonVariants({ variant: "outline" }))}>
+            Create member
+          </Link>
+        )}
       </div>
 
-      {pending.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No pending registrations.</p>
-      ) : (
-        <div className="overflow-x-auto rounded-xl ring-1 ring-foreground/10">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Company</TableHead>
-                <TableHead>Member type</TableHead>
-                <TableHead>Registered</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {pending.map((user) => {
-                const company = companyByUserId.get(user._id.toString());
-                return (
-                  <TableRow key={user._id.toString()}>
-                    <TableCell>{user.name}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>{user.phone}</TableCell>
-                    <TableCell>{company?.name ?? "—"}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {company?.memberTypes.map((type) => (
-                          <Badge key={type} variant="secondary">
-                            {type}
-                          </Badge>
-                        )) ?? "—"}
-                      </div>
-                    </TableCell>
-                    <TableCell>{user.createdAt.toLocaleDateString()}</TableCell>
-                    <TableCell className="text-right">
-                      <MemberRowActions userId={user._id.toString()} />
-                    </TableCell>
+      <Tabs key={tab} defaultValue={tab}>
+        <TabsList>
+          <TabsTrigger value="pending">Pending registrations</TabsTrigger>
+          <TabsTrigger value="all">All members</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="pending" className="flex flex-col gap-4">
+          {pending.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No pending registrations.</p>
+          ) : (
+            <div className="overflow-x-auto rounded-xl ring-1 ring-foreground/10">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Company</TableHead>
+                    <TableHead>Member type</TableHead>
+                    <TableHead>Registered</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+                </TableHeader>
+                <TableBody>
+                  {pending.map((user) => {
+                    const company = companyByUserId.get(user._id.toString());
+                    return (
+                      <TableRow key={user._id.toString()}>
+                        <TableCell>{user.name}</TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>{user.phone}</TableCell>
+                        <TableCell>{company?.name ?? "—"}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {company?.memberTypes.map((type) => (
+                              <Badge key={type} variant="secondary">
+                                {type}
+                              </Badge>
+                            )) ?? "—"}
+                          </div>
+                        </TableCell>
+                        <TableCell>{user.createdAt.toLocaleDateString()}</TableCell>
+                        <TableCell className="text-right">
+                          <MemberRowActions userId={user._id.toString()} />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+          <PaginationLinks
+            page={pendingPage}
+            totalPages={totalPendingPages}
+            hrefFor={(page) => buildMembersHref({ tab: "pending", pendingPage: page, allPage })}
+          />
+        </TabsContent>
+
+        <TabsContent value="all" className="flex flex-col gap-4">
+          {approvedUsers.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No members yet.</p>
+          ) : (
+            <div className="overflow-x-auto rounded-xl ring-1 ring-foreground/10">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Company</TableHead>
+                    <TableHead>Roles</TableHead>
+                    <TableHead>Registered</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {approvedUsers.map((user) => {
+                    const company = companyByUserId.get(user._id.toString());
+                    const userRoleIds = user.roleIds.map((id) => id.toString());
+                    const userRoleNames = roleOptions.filter((role) => userRoleIds.includes(role.id));
+                    return (
+                      <TableRow key={user._id.toString()}>
+                        <TableCell>{user.name}</TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>{user.phone}</TableCell>
+                        <TableCell>{company?.name ?? "—"}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {userRoleNames.length > 0
+                              ? userRoleNames.map((role) => (
+                                  <Badge key={role.id} variant="secondary">
+                                    {role.name}
+                                  </Badge>
+                                ))
+                              : "—"}
+                          </div>
+                        </TableCell>
+                        <TableCell>{user.createdAt.toLocaleDateString()}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+          <PaginationLinks
+            page={allPage}
+            totalPages={totalAllPages}
+            hrefFor={(page) => buildMembersHref({ tab: "all", pendingPage, allPage: page })}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

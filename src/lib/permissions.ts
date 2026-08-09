@@ -51,6 +51,21 @@ export async function requirePermission(
   return { session, permissions };
 }
 
+export function hasAnyPermission(permissions: Set<string>, perms: Permission[]): boolean {
+  return perms.some((permission) => hasPermission(permissions, permission));
+}
+
+export async function requireAnyPermission(
+  perms: Permission[]
+): Promise<{ session: Session; permissions: Set<string> }> {
+  const session = await requireAdminSession();
+  const permissions = await getSessionPermissions(session.user.roles);
+  if (!hasAnyPermission(permissions, perms)) {
+    redirect("/admin");
+  }
+  return { session, permissions };
+}
+
 export async function getUsersWithPermission(
   permission: Permission
 ): Promise<{ id: string; name: string; email: string }[]> {

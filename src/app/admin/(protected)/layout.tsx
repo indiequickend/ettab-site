@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { AdminSignOutButton } from "@/app/admin/sign-out-button";
-import { getSessionPermissions, hasPermission, requireAdminSession } from "@/lib/permissions";
+import { getSessionPermissions, hasAnyPermission, hasPermission, requireAdminSession } from "@/lib/permissions";
 
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const session = await requireAdminSession();
@@ -10,7 +10,11 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const navLinks = [
     { href: "/admin", label: "Dashboard", show: true },
     { href: "/admin/members", label: "Members", show: hasPermission(permissions, "members.approve") },
-    { href: "/admin/roles", label: "Roles", show: hasPermission(permissions, "roles.manage") },
+    {
+      href: "/admin/roles",
+      label: "Roles",
+      show: hasAnyPermission(permissions, ["roles.manage", "roles.assign"]),
+    },
     { href: "/admin/settings", label: "Settings", show: hasPermission(permissions, "settings.manage") },
   ];
 
