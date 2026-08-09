@@ -5,10 +5,13 @@ import { redirect } from "next/navigation";
 
 import { connectToDatabase } from "@/lib/mongodb";
 import { hashPassword } from "@/lib/password";
+import { checkRateLimit, formatRetryAfter, getClientIp } from "@/lib/rate-limit";
 import { sendVerificationEmail } from "@/lib/resend";
 import { generateVerificationToken } from "@/lib/tokens";
 import { registerSchema } from "@/lib/validation/auth";
 import { Company, CompanyPartner, Role, User } from "@/models";
+
+const REGISTER_RATE_LIMIT = { max: 5, windowMs: 60 * 60 * 1000 };
 
 export interface RegisterState {
   fieldErrors?: Record<string, string[]>;
@@ -19,6 +22,14 @@ export async function registerAction(
   _prevState: RegisterState,
   formData: FormData
 ): Promise<RegisterState> {
+  const ip = await getClientIp();
+  const rateLimit = await checkRateLimit(`register:${ip}`, REGISTER_RATE_LIMIT);
+  if (!rateLimit.allowed) {
+    return {
+      formError: `Too many registration attempts. Please try again in ${formatRetryAfter(rateLimit.retryAfterMs)}.`,
+    };
+  }
+
   const memberTypes = formData.getAll("memberTypes");
 
   const parsed = registerSchema.safeParse({

@@ -85,6 +85,6 @@ Data-quality notes to keep in mind if this file is parsed or imported:
 3. **Company & Partner Management** — company creation (at registration), email-based partner invite + accept/link flow, company management UI, multi-company support for a single person (company switcher).
 4. **Properties & Service Areas** — shared `places` typeahead component (search-or-insert-on-submit), property CRUD (hotel/homestay, rates, links), service-area CRUD for operators/car vendors, and a one-time migration script importing both existing CSVs into seed companies/properties/serviceAreas/places (with an invite/claim flow so real members take ownership of their pre-seeded rows).
 5. **Member Search** — search UI and backend resolution logic described above; mobile-first card results, click-to-call, random ordering, indexes on `places.normalizedName` / `properties.placeId` / `serviceAreas.placeId`.
-6. **Polish & Hardening** — full responsive/accessibility pass (frontend-design skill), auth rate-limiting, loading/empty/error states, end-to-end manual walkthrough of the full lifecycle (register → verify → approve → login → create company → invite partner → add property/service area → search finds it).
+6. **Polish & Hardening** — refer to ui-refactor.md and apply, auth rate-limiting, loading/empty/error states, end-to-end manual walkthrough of the full lifecycle (register → verify → approve → login → create company → invite partner → add property/service area → search finds it).
 
 No application code exists yet — Phase 0 is the next actionable step.

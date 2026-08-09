@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { RATE_LIMIT_ERROR_CODE, rateLimitMessage } from "@/lib/auth-messages";
 
 export function AdminLoginForm() {
   const router = useRouter();
@@ -26,7 +27,11 @@ export function AdminLoginForm() {
 
       const result = await signIn("credentials", { email, password, redirect: false });
       if (!result || result.error) {
-        setError("Invalid email or password.");
+        if (result?.error === RATE_LIMIT_ERROR_CODE) {
+          setError(rateLimitMessage("15 minutes"));
+        } else {
+          setError("Invalid email or password.");
+        }
         return;
       }
 

@@ -1,10 +1,14 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
+import { RATE_LIMIT_ERROR_CODE } from "@/lib/auth-messages";
 import { connectToDatabase } from "@/lib/mongodb";
 import { verifyPassword } from "@/lib/password";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { loginSchema } from "@/lib/validation/auth";
 import { Role, User } from "@/models";
+
+const LOGIN_RATE_LIMIT = { max: 8, windowMs: 15 * 60 * 1000 };
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt" },
@@ -16,9 +20,15 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         const parsed = loginSchema.safeParse(credentials);
         if (!parsed.success) return null;
+
+        const ip = req.headers?.["x-forwarded-for"]?.split(",")[0]?.trim() ?? "unknown";
+        const rateLimit = await checkRateLimit(`login:${parsed.data.email.toLowerCase()}:${ip}`, LOGIN_RATE_LIMIT);
+        if (!rateLimit.allowed) {
+          throw new Error(RATE_LIMIT_ERROR_CODE);
+        }
 
         await connectToDatabase();
         // Ensure Role is registered before populate() resolves roleIds.

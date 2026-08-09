@@ -32,101 +32,108 @@ export default async function AdminRolesPage() {
       <div className="flex justify-end">
         <RoleDialog />
       </div>
+      {roles.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No roles yet.</p>
+      ) : (
+        <div className="overflow-x-auto rounded-xl ring-1 ring-foreground/10">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Permissions</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {roles.map((role) => (
+                <TableRow key={role._id.toString()}>
+                  <TableCell>
+                    {role.name}
+                    {role.isSystem && (
+                      <Badge variant="outline" className="ml-2">
+                        System
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {role.permissions.map((permission) => (
+                        <Badge key={permission} variant="secondary">
+                          {permission === "*"
+                            ? "All permissions"
+                            : (PERMISSION_LABELS as Record<string, string>)[permission] ?? permission}
+                        </Badge>
+                      ))}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <RoleDialog
+                        key={role.permissions.join(",")}
+                        role={{
+                          id: role._id.toString(),
+                          name: role.name,
+                          permissions: role.permissions,
+                          isSystem: role.isSystem,
+                        }}
+                      />
+                      <DeleteRoleButton roleId={role._id.toString()} isSystem={role.isSystem} />
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </div>
+  );
+
+  const assignTable =
+    approvedUsers.length === 0 ? (
+      <p className="text-sm text-muted-foreground">No approved members yet.</p>
+    ) : (
       <div className="overflow-x-auto rounded-xl ring-1 ring-foreground/10">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Permissions</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Roles</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {roles.map((role) => (
-              <TableRow key={role._id.toString()}>
-                <TableCell>
-                  {role.name}
-                  {role.isSystem && (
-                    <Badge variant="outline" className="ml-2">
-                      System
-                    </Badge>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <div className="flex flex-wrap gap-1">
-                    {role.permissions.map((permission) => (
-                      <Badge key={permission} variant="secondary">
-                        {permission === "*"
-                          ? "All permissions"
-                          : (PERMISSION_LABELS as Record<string, string>)[permission] ?? permission}
-                      </Badge>
-                    ))}
-                  </div>
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                    <RoleDialog
-                      key={role.permissions.join(",")}
-                      role={{
-                        id: role._id.toString(),
-                        name: role.name,
-                        permissions: role.permissions,
-                        isSystem: role.isSystem,
-                      }}
+            {approvedUsers.map((user) => {
+              const userRoleIds = user.roleIds.map((id) => id.toString());
+              const userRoleNames = roleOptions.filter((role) => userRoleIds.includes(role.id));
+              return (
+                <TableRow key={user._id.toString()}>
+                  <TableCell>{user.name}</TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {userRoleNames.map((role) => (
+                        <Badge key={role.id} variant="secondary">
+                          {role.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <AssignRolesDialog
+                      key={userRoleIds.join(",")}
+                      user={{ id: user._id.toString(), name: user.name, roleIds: userRoleIds }}
+                      roles={roleOptions}
                     />
-                    <DeleteRoleButton roleId={role._id.toString()} isSystem={role.isSystem} />
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>
-    </div>
-  );
-
-  const assignTable = (
-    <div className="overflow-x-auto rounded-xl ring-1 ring-foreground/10">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Roles</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {approvedUsers.map((user) => {
-            const userRoleIds = user.roleIds.map((id) => id.toString());
-            const userRoleNames = roleOptions.filter((role) => userRoleIds.includes(role.id));
-            return (
-              <TableRow key={user._id.toString()}>
-                <TableCell>{user.name}</TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>
-                  <div className="flex flex-wrap gap-1">
-                    {userRoleNames.map((role) => (
-                      <Badge key={role.id} variant="secondary">
-                        {role.name}
-                      </Badge>
-                    ))}
-                  </div>
-                </TableCell>
-                <TableCell className="text-right">
-                  <AssignRolesDialog
-                    key={userRoleIds.join(",")}
-                    user={{ id: user._id.toString(), name: user.name, roleIds: userRoleIds }}
-                    roles={roleOptions}
-                  />
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
-    </div>
-  );
+    );
 
   return (
     <div className="flex flex-col gap-6">

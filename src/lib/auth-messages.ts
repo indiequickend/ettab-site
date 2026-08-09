@@ -1,5 +1,11 @@
 import type { UserStatus } from "@/models";
 
+export const RATE_LIMIT_ERROR_CODE = "RATE_LIMITED";
+
+export function rateLimitMessage(retryAfter: string): string {
+  return `Too many attempts. Please try again in ${retryAfter}.`;
+}
+
 export function statusRejectionMessage(status: UserStatus): string {
   switch (status) {
     case "pending_email":

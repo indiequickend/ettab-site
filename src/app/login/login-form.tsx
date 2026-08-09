@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { getAccountStatus } from "@/lib/account-status";
-import { statusRejectionMessage } from "@/lib/auth-messages";
+import { RATE_LIMIT_ERROR_CODE, rateLimitMessage, statusRejectionMessage } from "@/lib/auth-messages";
 
 export function LoginForm() {
   const router = useRouter();
@@ -27,6 +27,10 @@ export function LoginForm() {
       const password = String(formData.get("password") ?? "");
 
       const account = await getAccountStatus(email);
+      if (account.rateLimited) {
+        setError(rateLimitMessage(account.retryAfter!));
+        return;
+      }
       if (!account.exists) {
         setError("Invalid email or password.");
         return;
@@ -38,7 +42,11 @@ export function LoginForm() {
 
       const result = await signIn("credentials", { email, password, redirect: false });
       if (!result || result.error) {
-        setError("Invalid email or password.");
+        if (result?.error === RATE_LIMIT_ERROR_CODE) {
+          setError(rateLimitMessage("15 minutes"));
+        } else {
+          setError("Invalid email or password.");
+        }
         return;
       }
 
