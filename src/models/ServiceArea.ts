@@ -19,6 +19,7 @@ const serviceAreaSchema = new Schema<IServiceArea>(
 );
 
 serviceAreaSchema.index({ companyId: 1, placeId: 1 }, { unique: true });
+serviceAreaSchema.index({ placeId: 1 });
 
 export const ServiceArea =
   (mongoose.models.ServiceArea as mongoose.Model<IServiceArea>) ||

@@ -18,6 +18,9 @@ export default async function DashboardPage() {
       <p className="text-sm text-muted-foreground sm:text-base">
         Roles: {session.user.roles.join(", ") || "member"}
       </p>
+      <Link href="/dashboard/search" className={cn(buttonVariants({ variant: "outline" }))}>
+        Find a member
+      </Link>
       <Link href="/dashboard/company" className={cn(buttonVariants({ variant: "outline" }))}>
         Manage my company
       </Link>
