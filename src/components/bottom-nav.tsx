@@ -2,14 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
 export interface BottomNavItem {
-  href: string;
+  href?: string;
   label: string;
   icon: ReactNode;
+  action?: "sign-out";
 }
 
 function isActive(pathname: string, href: string): boolean {
@@ -28,11 +30,25 @@ export function BottomNav({ items }: { items: BottomNavItem[] }) {
       aria-label="Primary"
     >
       {items.map((item) => {
-        const active = isActive(pathname, item.href);
+        if (item.action === "sign-out") {
+          return (
+            <button
+              key="sign-out"
+              type="button"
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              className="flex min-h-[48px] min-w-[48px] flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {item.icon}
+              <span>{item.label}</span>
+            </button>
+          );
+        }
+
+        const active = isActive(pathname, item.href!);
         return (
           <Link
             key={item.href}
-            href={item.href}
+            href={item.href!}
             className={cn(
               "flex min-h-[48px] min-w-[48px] flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors",
               active ? "text-primary" : "text-muted-foreground hover:text-foreground"

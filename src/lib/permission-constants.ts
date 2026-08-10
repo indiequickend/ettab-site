@@ -7,6 +7,7 @@ export const PERMISSIONS = [
   "company.manage_own",
   "property.manage_own",
   "serviceArea.manage_own",
+  "groupTour.manage_own",
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
@@ -20,6 +21,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   "company.manage_own": "Manage own company",
   "property.manage_own": "Manage own properties",
   "serviceArea.manage_own": "Manage own service areas",
+  "groupTour.manage_own": "Manage own group tours",
 };
 
 export const ADMIN_AREA_ROLE_NAMES = ["superadmin", "admin"] as const;

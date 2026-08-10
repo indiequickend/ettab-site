@@ -1,4 +1,4 @@
-import { Home, Search, Building2, UserCircle, ShieldCheck } from "lucide-react";
+import { Home, Search, Building2, UserCircle, ShieldCheck, LogOut } from "lucide-react";
 
 import { BottomNav, type BottomNavItem } from "@/components/bottom-nav";
 import { requireMemberSession } from "@/lib/company-context";
@@ -17,6 +17,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
     { href: "/dashboard/company", label: "Company", icon: <Building2 {...iconProps} /> },
     { href: "/dashboard/account", label: "Account", icon: <UserCircle {...iconProps} /> },
     ...(isAdmin ? [{ href: "/admin", label: "Admin", icon: <ShieldCheck {...iconProps} /> }] : []),
+    { label: "Logout", icon: <LogOut {...iconProps} />, action: "sign-out" as const },
   ];
 
   return (

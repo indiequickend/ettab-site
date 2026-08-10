@@ -7,4 +7,5 @@ export { Invite, type IInvite, type InviteStatus } from "./Invite";
 export { Place, type IPlace } from "./Place";
 export { Property, type IProperty } from "./Property";
 export { ServiceArea, type IServiceArea } from "./ServiceArea";
+export { GroupTour, type IGroupTour } from "./GroupTour";
 export { RateLimitAttempt, type IRateLimitAttempt } from "./RateLimitAttempt";
