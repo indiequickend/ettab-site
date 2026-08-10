@@ -1,12 +1,12 @@
 "use server";
 
-import DOMPurify from "isomorphic-dompurify";
 import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
 
 import { authOptions } from "@/lib/auth-options";
 import { requireCompanyPartner } from "@/lib/company-context";
 import { connectToDatabase } from "@/lib/mongodb";
+import { sanitizeDescription } from "@/lib/sanitize-description";
 import {
   deleteGroupTourSchema,
   groupTourSchema,
@@ -18,33 +18,6 @@ import { GroupTour } from "@/models";
 export interface GroupTourActionState {
   fieldErrors?: Record<string, string[]>;
   formError?: string;
-}
-
-const SANITIZE_OPTIONS = {
-  ALLOWED_TAGS: [
-    "p",
-    "br",
-    "strong",
-    "em",
-    "b",
-    "i",
-    "u",
-    "s",
-    "ul",
-    "ol",
-    "li",
-    "a",
-    "h1",
-    "h2",
-    "h3",
-    "blockquote",
-    "code",
-  ],
-  ALLOWED_ATTR: ["href", "target", "rel"],
-};
-
-function sanitizeDescription(html: string): string {
-  return DOMPurify.sanitize(html, SANITIZE_OPTIONS);
 }
 
 async function requireSessionUserId(): Promise<{ userId: string } | { error: string }> {

@@ -1,4 +1,3 @@
-import DOMPurify from "isomorphic-dompurify";
 import { PhoneIcon } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -9,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { getActiveCompany, requireMemberSession } from "@/lib/company-context";
 import { getGroupTourDetail } from "@/lib/group-tours";
+import { sanitizeDescription } from "@/lib/sanitize-description";
 import { GroupTourOwnerActions } from "./group-tour-owner-actions";
 
 function formatDate(date: Date | string): string {
@@ -38,28 +38,7 @@ export default async function GroupTourDetailPage({
     notFound();
   }
 
-  const safeDescription = DOMPurify.sanitize(tour.description, {
-    ALLOWED_TAGS: [
-      "p",
-      "br",
-      "strong",
-      "em",
-      "b",
-      "i",
-      "u",
-      "s",
-      "ul",
-      "ol",
-      "li",
-      "a",
-      "h1",
-      "h2",
-      "h3",
-      "blockquote",
-      "code",
-    ],
-    ALLOWED_ATTR: ["href", "target", "rel"],
-  });
+  const safeDescription = sanitizeDescription(tour.description);
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8">
