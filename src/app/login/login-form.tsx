@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import {
@@ -24,7 +24,6 @@ export function LoginForm() {
   const [fingerprintSupported, setFingerprintSupported] = useState(false);
   const [fingerprintPending, setFingerprintPending] = useState(false);
   const [showEnrollDialog, setShowEnrollDialog] = useState(false);
-  const emailRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -103,22 +102,11 @@ export function LoginForm() {
 
   async function handleFingerprintLogin() {
     setError(null);
-    const email = emailRef.current?.value.trim() ?? "";
-    if (!email) {
-      setError("Enter your email first.");
-      return;
-    }
-
     setFingerprintPending(true);
     try {
-      const optionsRes = await fetch("/api/webauthn/authentication/options", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
+      const optionsRes = await fetch("/api/webauthn/authentication/options", { method: "POST" });
       if (!optionsRes.ok) {
-        const data = await optionsRes.json().catch(() => ({}));
-        setError(data.error ?? "Fingerprint login is not available for this account.");
+        setError("Fingerprint login is not available right now.");
         return;
       }
       const options = await optionsRes.json();
@@ -132,7 +120,6 @@ export function LoginForm() {
       }
 
       const result = await signIn("webauthn", {
-        email,
         response: JSON.stringify(authResp),
         redirect: false,
       });
@@ -156,7 +143,7 @@ export function LoginForm() {
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="email">Email</Label>
-          <Input id="email" name="email" type="email" ref={emailRef} required />
+          <Input id="email" name="email" type="email" required />
         </div>
 
         <div className="flex flex-col gap-1.5">

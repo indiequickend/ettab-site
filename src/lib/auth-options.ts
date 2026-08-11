@@ -1,5 +1,6 @@
 import type { AuthenticatorTransportFuture } from "@simplewebauthn/server";
 import { verifyAuthenticationResponse } from "@simplewebauthn/server";
+import { Types } from "mongoose";
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
@@ -9,7 +10,7 @@ import { verifyPassword } from "@/lib/password";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getOrigin, getRpId } from "@/lib/webauthn";
 import { loginSchema } from "@/lib/validation/auth";
-import { Role, User } from "@/models";
+import { Role, User, WebauthnChallenge } from "@/models";
 
 const LOGIN_RATE_LIMIT = { max: 8, windowMs: 15 * 60 * 1000 };
 
@@ -59,35 +60,15 @@ export const authOptions: NextAuthOptions = {
       id: "webauthn",
       name: "Fingerprint",
       credentials: {
-        email: { label: "Email", type: "text" },
         response: { label: "WebAuthn response", type: "text" },
       },
       async authorize(credentials, req) {
-        if (!credentials?.email || !credentials?.response) return null;
+        if (!credentials?.response) return null;
 
-        const email = credentials.email.toLowerCase().trim();
         const ip = req.headers?.["x-forwarded-for"]?.split(",")[0]?.trim() ?? "unknown";
-        const rateLimit = await checkRateLimit(`webauthn-login:${email}:${ip}`, LOGIN_RATE_LIMIT);
+        const rateLimit = await checkRateLimit(`webauthn-login:${ip}`, LOGIN_RATE_LIMIT);
         if (!rateLimit.allowed) {
           throw new Error(RATE_LIMIT_ERROR_CODE);
-        }
-
-        await connectToDatabase();
-        // Ensure Role is registered before populate() resolves roleIds.
-        void Role;
-
-        const user = await User.findOne({ email }).populate<{
-          roleIds: { name: string }[];
-        }>("roleIds");
-
-        if (!user) return null;
-        if (user.status !== "approved") return null;
-        if (
-          !user.webauthnChallenge ||
-          !user.webauthnChallengeExpiresAt ||
-          user.webauthnChallengeExpiresAt < new Date()
-        ) {
-          return null;
         }
 
         let parsedResponse;
@@ -97,6 +78,39 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
+        const userHandle = parsedResponse?.response?.userHandle;
+        const clientDataJSONRaw = parsedResponse?.response?.clientDataJSON;
+        if (!userHandle || !clientDataJSONRaw) return null;
+
+        let userId: string;
+        let challenge: string;
+        try {
+          userId = Buffer.from(userHandle, "base64url").toString("utf-8");
+          const clientData = JSON.parse(Buffer.from(clientDataJSONRaw, "base64url").toString("utf-8"));
+          challenge = clientData.challenge;
+        } catch {
+          return null;
+        }
+        if (!challenge || !Types.ObjectId.isValid(userId)) return null;
+
+        await connectToDatabase();
+        // Ensure Role is registered before populate() resolves roleIds.
+        void Role;
+
+        // Single-use, tied to no particular user (usernameless/discoverable-credential flow).
+        const challengeDoc = await WebauthnChallenge.findOneAndDelete({
+          challenge,
+          expiresAt: { $gt: new Date() },
+        });
+        if (!challengeDoc) return null;
+
+        const user = await User.findById(userId).populate<{
+          roleIds: { name: string }[];
+        }>("roleIds");
+
+        if (!user) return null;
+        if (user.status !== "approved") return null;
+
         const stored = user.webauthnCredentials.find((c) => c.credentialId === parsedResponse.id);
         if (!stored) return null;
 
@@ -104,7 +118,7 @@ export const authOptions: NextAuthOptions = {
         try {
           verification = await verifyAuthenticationResponse({
             response: parsedResponse,
-            expectedChallenge: user.webauthnChallenge,
+            expectedChallenge: challenge,
             expectedOrigin: getOrigin(),
             expectedRPID: getRpId(),
             credential: {
@@ -120,8 +134,6 @@ export const authOptions: NextAuthOptions = {
         if (!verification.verified) return null;
 
         stored.counter = verification.authenticationInfo.newCounter;
-        user.webauthnChallenge = null;
-        user.webauthnChallengeExpiresAt = null;
         await user.save();
 
         return {

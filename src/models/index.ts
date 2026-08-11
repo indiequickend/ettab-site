@@ -9,3 +9,4 @@ export { Property, type IProperty } from "./Property";
 export { ServiceArea, type IServiceArea } from "./ServiceArea";
 export { GroupTour, type IGroupTour } from "./GroupTour";
 export { RateLimitAttempt, type IRateLimitAttempt } from "./RateLimitAttempt";
+export { WebauthnChallenge, type IWebauthnChallenge } from "./WebauthnChallenge";

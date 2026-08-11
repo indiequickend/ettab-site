@@ -31,7 +31,7 @@ export async function POST() {
       transports: c.transports as ("ble" | "cable" | "hybrid" | "internal" | "nfc" | "smart-card" | "usb")[],
     })),
     authenticatorSelection: {
-      residentKey: "preferred",
+      residentKey: "required",
       userVerification: "required",
       authenticatorAttachment: "platform",
     },
