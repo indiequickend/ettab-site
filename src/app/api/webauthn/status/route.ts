@@ -20,7 +20,7 @@ export async function GET() {
   }
 
   return NextResponse.json({
-    hasCredential: user.webauthnCredentials.length > 0,
-    promptDismissed: user.fingerprintPromptDismissed,
+    hasCredential: (user.webauthnCredentials?.length ?? 0) > 0,
+    promptDismissed: user.fingerprintPromptDismissed ?? false,
   });
 }
