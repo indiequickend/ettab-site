@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { CompanyPartner, Role, User } from "@/models";
 import type { ICompany } from "@/models";
 import { MemberRowActions } from "./member-row-actions";
+import { ResendVerificationAction } from "./resend-verification-action";
 
 const PAGE_SIZE = 20;
 
@@ -27,11 +28,17 @@ function parsePage(value: string | undefined, totalPages: number): number {
   return Math.min(safe, totalPages);
 }
 
-function buildMembersHref(params: { tab: "pending" | "all"; pendingPage: number; allPage: number }) {
+function buildMembersHref(params: {
+  tab: "pending" | "all" | "unverified";
+  pendingPage: number;
+  allPage: number;
+  unverifiedPage: number;
+}) {
   const search = new URLSearchParams();
   search.set("tab", params.tab);
   if (params.pendingPage > 1) search.set("pendingPage", String(params.pendingPage));
   if (params.allPage > 1) search.set("allPage", String(params.allPage));
+  if (params.unverifiedPage > 1) search.set("unverifiedPage", String(params.unverifiedPage));
   const qs = search.toString();
   return `/admin/members${qs ? `?${qs}` : ""}`;
 }
@@ -39,26 +46,34 @@ function buildMembersHref(params: { tab: "pending" | "all"; pendingPage: number;
 export default async function AdminMembersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; pendingPage?: string; allPage?: string }>;
+  searchParams: Promise<{
+    tab?: string;
+    pendingPage?: string;
+    allPage?: string;
+    unverifiedPage?: string;
+  }>;
 }) {
   const { permissions } = await requirePermission("members.approve");
   const canCreateMembers = hasPermission(permissions, "members.create");
   await connectToDatabase();
 
   const sp = await searchParams;
-  const tab = sp.tab === "all" ? "all" : "pending";
+  const tab = sp.tab === "all" ? "all" : sp.tab === "unverified" ? "unverified" : "pending";
 
-  const [pendingCount, approvedCount] = await Promise.all([
+  const [pendingCount, approvedCount, unverifiedCount] = await Promise.all([
     User.countDocuments({ status: "pending_approval" }),
     User.countDocuments({ status: "approved" }),
+    User.countDocuments({ status: "pending_email" }),
   ]);
 
   const totalPendingPages = Math.max(1, Math.ceil(pendingCount / PAGE_SIZE));
   const totalAllPages = Math.max(1, Math.ceil(approvedCount / PAGE_SIZE));
+  const totalUnverifiedPages = Math.max(1, Math.ceil(unverifiedCount / PAGE_SIZE));
   const pendingPage = parsePage(sp.pendingPage, totalPendingPages);
   const allPage = parsePage(sp.allPage, totalAllPages);
+  const unverifiedPage = parsePage(sp.unverifiedPage, totalUnverifiedPages);
 
-  const [pending, approvedUsers, roles] = await Promise.all([
+  const [pending, approvedUsers, unverifiedUsers, roles] = await Promise.all([
     User.find({ status: "pending_approval" })
       .sort({ createdAt: 1 })
       .skip((pendingPage - 1) * PAGE_SIZE)
@@ -69,11 +84,22 @@ export default async function AdminMembersPage({
       .skip((allPage - 1) * PAGE_SIZE)
       .limit(PAGE_SIZE)
       .lean(),
+    User.find({ status: "pending_email" })
+      .sort({ createdAt: 1 })
+      .skip((unverifiedPage - 1) * PAGE_SIZE)
+      .limit(PAGE_SIZE)
+      .lean(),
     Role.find().sort({ name: 1 }).lean(),
   ]);
 
   const partners = await CompanyPartner.find({
-    userId: { $in: [...pending.map((user) => user._id), ...approvedUsers.map((user) => user._id)] },
+    userId: {
+      $in: [
+        ...pending.map((user) => user._id),
+        ...approvedUsers.map((user) => user._id),
+        ...unverifiedUsers.map((user) => user._id),
+      ],
+    },
   }).populate<{ companyId: ICompany }>("companyId");
 
   const companyByUserId = new Map(partners.map((partner) => [partner.userId.toString(), partner.companyId]));
@@ -99,6 +125,7 @@ export default async function AdminMembersPage({
         <TabsList>
           <TabsTrigger value="pending">Pending registrations</TabsTrigger>
           <TabsTrigger value="all">All members</TabsTrigger>
+          <TabsTrigger value="unverified">Unverified</TabsTrigger>
         </TabsList>
 
         <TabsContent value="pending" className="flex flex-col gap-4">
@@ -150,7 +177,9 @@ export default async function AdminMembersPage({
           <PaginationLinks
             page={pendingPage}
             totalPages={totalPendingPages}
-            hrefFor={(page) => buildMembersHref({ tab: "pending", pendingPage: page, allPage })}
+            hrefFor={(page) =>
+              buildMembersHref({ tab: "pending", pendingPage: page, allPage, unverifiedPage })
+            }
           />
         </TabsContent>
 
@@ -203,7 +232,54 @@ export default async function AdminMembersPage({
           <PaginationLinks
             page={allPage}
             totalPages={totalAllPages}
-            hrefFor={(page) => buildMembersHref({ tab: "all", pendingPage, allPage: page })}
+            hrefFor={(page) =>
+              buildMembersHref({ tab: "all", pendingPage, allPage: page, unverifiedPage })
+            }
+          />
+        </TabsContent>
+
+        <TabsContent value="unverified" className="flex flex-col gap-4">
+          {unverifiedUsers.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No unverified accounts.</p>
+          ) : (
+            <div className="overflow-x-auto rounded-xl ring-1 ring-foreground/10">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Company</TableHead>
+                    <TableHead>Registered</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {unverifiedUsers.map((user) => {
+                    const company = companyByUserId.get(user._id.toString());
+                    return (
+                      <TableRow key={user._id.toString()}>
+                        <TableCell>{user.name}</TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>{user.phone}</TableCell>
+                        <TableCell>{company?.name ?? "—"}</TableCell>
+                        <TableCell>{user.createdAt.toLocaleDateString()}</TableCell>
+                        <TableCell className="text-right">
+                          <ResendVerificationAction userId={user._id.toString()} />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+          <PaginationLinks
+            page={unverifiedPage}
+            totalPages={totalUnverifiedPages}
+            hrefFor={(page) =>
+              buildMembersHref({ tab: "unverified", pendingPage, allPage, unverifiedPage: page })
+            }
           />
         </TabsContent>
       </Tabs>

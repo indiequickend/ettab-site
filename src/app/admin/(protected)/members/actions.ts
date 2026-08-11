@@ -7,7 +7,8 @@ import { Types } from "mongoose";
 import { authOptions } from "@/lib/auth-options";
 import { connectToDatabase } from "@/lib/mongodb";
 import { getSessionPermissions, hasPermission } from "@/lib/permissions";
-import { sendApprovalDecisionEmail } from "@/lib/resend";
+import { sendApprovalDecisionEmail, sendVerificationEmail } from "@/lib/resend";
+import { generateVerificationToken } from "@/lib/tokens";
 import { approveMemberSchema, rejectMemberSchema } from "@/lib/validation/admin";
 import { User } from "@/models";
 
@@ -62,6 +63,46 @@ export async function approveMemberAction(
     await sendApprovalDecisionEmail(user.email, user.name, { status: "approved" });
   } catch (err) {
     console.error(`Failed to send approval email to ${user.email}`, err);
+  }
+
+  revalidatePath("/admin/members");
+  return {};
+}
+
+export async function resendVerificationEmailAction(
+  _prevState: MemberDecisionState,
+  formData: FormData
+): Promise<MemberDecisionState> {
+  const auth = await requireMembersApprovePermission();
+  if ("error" in auth) {
+    return { formError: auth.error };
+  }
+
+  const parsed = approveMemberSchema.safeParse({ userId: formData.get("userId") });
+  if (!parsed.success) {
+    return { formError: "Invalid request." };
+  }
+
+  await connectToDatabase();
+  const user = await User.findById(parsed.data.userId);
+  if (!user) {
+    return { formError: "This member could not be found." };
+  }
+  if (user.status !== "pending_email") {
+    return { formError: "This member has already verified their email." };
+  }
+
+  const { token: rawToken, tokenHash, expiresAt } = generateVerificationToken();
+  user.emailVerificationTokenHash = tokenHash;
+  user.emailVerificationTokenExpiresAt = expiresAt;
+  await user.save();
+
+  const verifyUrl = `${process.env.NEXTAUTH_URL}/api/verify-email?token=${rawToken}`;
+  try {
+    await sendVerificationEmail(user.email, user.name, verifyUrl);
+  } catch (err) {
+    console.error(`Failed to resend verification email to ${user.email}`, err);
+    return { formError: "Failed to send verification email. Please try again." };
   }
 
   revalidatePath("/admin/members");

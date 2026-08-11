@@ -1,8 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
+import {
+  browserSupportsWebAuthn,
+  platformAuthenticatorIsAvailable,
+  startAuthentication,
+} from "@simplewebauthn/browser";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,11 +15,36 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { getAccountStatus } from "@/lib/account-status";
 import { RATE_LIMIT_ERROR_CODE, rateLimitMessage, statusRejectionMessage } from "@/lib/auth-messages";
+import { FingerprintEnrollDialog } from "./fingerprint-enroll-dialog";
 
 export function LoginForm() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [fingerprintSupported, setFingerprintSupported] = useState(false);
+  const [fingerprintPending, setFingerprintPending] = useState(false);
+  const [showEnrollDialog, setShowEnrollDialog] = useState(false);
+  const emailRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function detect() {
+      if (!browserSupportsWebAuthn()) return;
+      const available = await platformAuthenticatorIsAvailable();
+      if (!cancelled && available) {
+        setFingerprintSupported(true);
+      }
+    }
+    void detect();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function goToDashboard() {
+    router.push("/dashboard");
+    router.refresh();
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -50,34 +80,120 @@ export function LoginForm() {
         return;
       }
 
-      router.push("/dashboard");
-      router.refresh();
+      if (fingerprintSupported) {
+        try {
+          const statusRes = await fetch("/api/webauthn/status");
+          if (statusRes.ok) {
+            const status = await statusRes.json();
+            if (!status.hasCredential && !status.promptDismissed) {
+              setShowEnrollDialog(true);
+              return;
+            }
+          }
+        } catch {
+          // fall through to normal navigation
+        }
+      }
+
+      goToDashboard();
     } finally {
       setPending(false);
     }
   }
 
+  async function handleFingerprintLogin() {
+    setError(null);
+    const email = emailRef.current?.value.trim() ?? "";
+    if (!email) {
+      setError("Enter your email first.");
+      return;
+    }
+
+    setFingerprintPending(true);
+    try {
+      const optionsRes = await fetch("/api/webauthn/authentication/options", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      if (!optionsRes.ok) {
+        const data = await optionsRes.json().catch(() => ({}));
+        setError(data.error ?? "Fingerprint login is not available for this account.");
+        return;
+      }
+      const options = await optionsRes.json();
+
+      let authResp;
+      try {
+        authResp = await startAuthentication({ optionsJSON: options });
+      } catch {
+        setError("Fingerprint login was cancelled.");
+        return;
+      }
+
+      const result = await signIn("webauthn", {
+        email,
+        response: JSON.stringify(authResp),
+        redirect: false,
+      });
+      if (!result || result.error) {
+        if (result?.error === RATE_LIMIT_ERROR_CODE) {
+          setError(rateLimitMessage("15 minutes"));
+        } else {
+          setError("Fingerprint login failed. Please use your password.");
+        }
+        return;
+      }
+
+      goToDashboard();
+    } finally {
+      setFingerprintPending(false);
+    }
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="email">Email</Label>
-        <Input id="email" name="email" type="email" required />
-      </div>
+    <>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="email">Email</Label>
+          <Input id="email" name="email" type="email" ref={emailRef} required />
+        </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="password">Password</Label>
-        <Input id="password" name="password" type="password" required />
-      </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="password">Password</Label>
+          <Input id="password" name="password" type="password" required />
+        </div>
 
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-      <Button type="submit" disabled={pending} className="w-full">
-        {pending ? "Logging in..." : "Log in"}
-      </Button>
-    </form>
+        <Button type="submit" disabled={pending} className="w-full">
+          {pending ? "Logging in..." : "Log in"}
+        </Button>
+
+        {fingerprintSupported && (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            disabled={fingerprintPending}
+            onClick={handleFingerprintLogin}
+          >
+            {fingerprintPending ? "Verifying..." : "Log in with fingerprint"}
+          </Button>
+        )}
+      </form>
+
+      <FingerprintEnrollDialog
+        open={showEnrollDialog}
+        onDone={() => {
+          setShowEnrollDialog(false);
+          goToDashboard();
+        }}
+      />
+    </>
   );
 }
