@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
+import { useTopLoader } from "nextjs-toploader";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,7 +18,18 @@ const MEMBER_TYPES = [
 ];
 
 export function RegisterForm() {
-  const [state, formAction] = useActionState(registerAction, initialState);
+  const [state, formAction, isPending] = useActionState(registerAction, initialState);
+  const topLoader = useTopLoader();
+
+  useEffect(() => {
+    if (isPending) {
+      topLoader.start();
+    } else {
+      topLoader.done();
+    }
+    // topLoader's identity is stable across renders; only isPending should retrigger this.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPending]);
 
   return (
     <form action={formAction} className="flex flex-col gap-4">

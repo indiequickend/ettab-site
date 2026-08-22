@@ -7,14 +7,6 @@ export type UserStatus =
   | "rejected"
   | "suspended";
 
-export interface IWebAuthnCredential {
-  credentialId: string;
-  publicKey: Buffer;
-  counter: number;
-  transports: string[];
-  createdAt: Date;
-}
-
 export interface IUser {
   _id: Types.ObjectId;
   name: string;
@@ -31,10 +23,6 @@ export interface IUser {
   rejectedBy: Types.ObjectId | null;
   rejectedAt: Date | null;
   rejectionReason: string | null;
-  webauthnCredentials: IWebAuthnCredential[];
-  webauthnChallenge: string | null;
-  webauthnChallengeExpiresAt: Date | null;
-  fingerprintPromptDismissed: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -59,26 +47,9 @@ const userSchema = new Schema<IUser>(
     rejectedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
     rejectedAt: { type: Date, default: null },
     rejectionReason: { type: String, default: null },
-    webauthnCredentials: {
-      type: [
-        {
-          credentialId: { type: String, required: true },
-          publicKey: { type: Buffer, required: true },
-          counter: { type: Number, default: 0 },
-          transports: { type: [String], default: [] },
-          createdAt: { type: Date, default: Date.now },
-        },
-      ],
-      default: [],
-    },
-    webauthnChallenge: { type: String, default: null },
-    webauthnChallengeExpiresAt: { type: Date, default: null },
-    fingerprintPromptDismissed: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
-
-userSchema.index({ "webauthnCredentials.credentialId": 1 });
 
 export const User =
   (mongoose.models.User as mongoose.Model<IUser>) ||

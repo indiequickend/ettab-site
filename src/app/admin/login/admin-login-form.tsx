@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSession, signIn, signOut } from "next-auth/react";
+import { useTopLoader } from "nextjs-toploader";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,7 @@ import { RATE_LIMIT_ERROR_CODE, rateLimitMessage } from "@/lib/auth-messages";
 
 export function AdminLoginForm() {
   const router = useRouter();
+  const topLoader = useTopLoader();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -19,6 +21,7 @@ export function AdminLoginForm() {
     event.preventDefault();
     setError(null);
     setPending(true);
+    topLoader.start();
 
     try {
       const formData = new FormData(event.currentTarget);
@@ -32,6 +35,7 @@ export function AdminLoginForm() {
         } else {
           setError("Invalid email or password.");
         }
+        topLoader.done();
         return;
       }
 
@@ -40,9 +44,11 @@ export function AdminLoginForm() {
       if (!isAdmin) {
         await signOut({ redirect: false });
         setError("This login is for site administrators only.");
+        topLoader.done();
         return;
       }
 
+      // Navigation takes over the progress bar from here; it completes on route change.
       router.push("/admin");
       router.refresh();
     } finally {

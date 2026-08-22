@@ -1,5 +1,5 @@
 export { Role, type IRole } from "./Role";
-export { User, type IUser, type IWebAuthnCredential, type UserStatus } from "./User";
+export { User, type IUser, type UserStatus } from "./User";
 export { Settings, type ISettings } from "./Settings";
 export { Company, type ICompany, type MemberType } from "./Company";
 export { CompanyPartner, type ICompanyPartner } from "./CompanyPartner";
@@ -10,4 +10,3 @@ export { Vehicle, type IVehicle } from "./Vehicle";
 export { ServiceArea, type IServiceArea } from "./ServiceArea";
 export { GroupTour, type IGroupTour } from "./GroupTour";
 export { RateLimitAttempt, type IRateLimitAttempt } from "./RateLimitAttempt";
-export { WebauthnChallenge, type IWebauthnChallenge } from "./WebauthnChallenge";
