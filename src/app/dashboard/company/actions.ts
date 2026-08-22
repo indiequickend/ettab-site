@@ -60,6 +60,8 @@ export async function setActiveCompanyAction(companyId: string): Promise<void> {
   revalidatePath("/dashboard/company");
   revalidatePath("/dashboard/properties");
   revalidatePath("/dashboard/service-areas");
+  revalidatePath("/dashboard/vehicles");
+  revalidatePath("/dashboard/account");
 }
 
 export async function updateCompanyDetailsAction(
@@ -99,7 +101,14 @@ export async function updateCompanyDetailsAction(
     licenceNumbers,
   });
 
+  // Member types gate the dashboard nav and several pages, not just this one.
+  revalidatePath("/dashboard");
   revalidatePath("/dashboard/company");
+  revalidatePath("/dashboard/account");
+  revalidatePath("/dashboard/properties");
+  revalidatePath("/dashboard/service-areas");
+  revalidatePath("/dashboard/group-tours");
+  revalidatePath("/dashboard/vehicles");
   return {};
 }
 
