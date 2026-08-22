@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { CompanyPartner, Role, User } from "@/models";
 import type { ICompany } from "@/models";
 import { MemberRowActions } from "./member-row-actions";
+import { BlockMemberButton, RemoveMemberButton, UnblockMemberButton } from "./member-manage-actions";
 import { ResendVerificationAction } from "./resend-verification-action";
 
 const PAGE_SIZE = 20;
@@ -29,16 +30,18 @@ function parsePage(value: string | undefined, totalPages: number): number {
 }
 
 function buildMembersHref(params: {
-  tab: "pending" | "all" | "unverified";
+  tab: "pending" | "all" | "unverified" | "blocked";
   pendingPage: number;
   allPage: number;
   unverifiedPage: number;
+  blockedPage: number;
 }) {
   const search = new URLSearchParams();
   search.set("tab", params.tab);
   if (params.pendingPage > 1) search.set("pendingPage", String(params.pendingPage));
   if (params.allPage > 1) search.set("allPage", String(params.allPage));
   if (params.unverifiedPage > 1) search.set("unverifiedPage", String(params.unverifiedPage));
+  if (params.blockedPage > 1) search.set("blockedPage", String(params.blockedPage));
   const qs = search.toString();
   return `/admin/members${qs ? `?${qs}` : ""}`;
 }
@@ -51,29 +54,41 @@ export default async function AdminMembersPage({
     pendingPage?: string;
     allPage?: string;
     unverifiedPage?: string;
+    blockedPage?: string;
   }>;
 }) {
   const { permissions } = await requirePermission("members.approve");
   const canCreateMembers = hasPermission(permissions, "members.create");
+  const canManageMembers = hasPermission(permissions, "members.manage");
   await connectToDatabase();
 
   const sp = await searchParams;
-  const tab = sp.tab === "all" ? "all" : sp.tab === "unverified" ? "unverified" : "pending";
+  const tab =
+    sp.tab === "all"
+      ? "all"
+      : sp.tab === "unverified"
+        ? "unverified"
+        : sp.tab === "blocked"
+          ? "blocked"
+          : "pending";
 
-  const [pendingCount, approvedCount, unverifiedCount] = await Promise.all([
+  const [pendingCount, approvedCount, unverifiedCount, blockedCount] = await Promise.all([
     User.countDocuments({ status: "pending_approval" }),
     User.countDocuments({ status: "approved" }),
     User.countDocuments({ status: "pending_email" }),
+    User.countDocuments({ status: "suspended" }),
   ]);
 
   const totalPendingPages = Math.max(1, Math.ceil(pendingCount / PAGE_SIZE));
   const totalAllPages = Math.max(1, Math.ceil(approvedCount / PAGE_SIZE));
   const totalUnverifiedPages = Math.max(1, Math.ceil(unverifiedCount / PAGE_SIZE));
+  const totalBlockedPages = Math.max(1, Math.ceil(blockedCount / PAGE_SIZE));
   const pendingPage = parsePage(sp.pendingPage, totalPendingPages);
   const allPage = parsePage(sp.allPage, totalAllPages);
   const unverifiedPage = parsePage(sp.unverifiedPage, totalUnverifiedPages);
+  const blockedPage = parsePage(sp.blockedPage, totalBlockedPages);
 
-  const [pending, approvedUsers, unverifiedUsers, roles] = await Promise.all([
+  const [pending, approvedUsers, unverifiedUsers, blockedUsers, roles] = await Promise.all([
     User.find({ status: "pending_approval" })
       .sort({ createdAt: 1 })
       .skip((pendingPage - 1) * PAGE_SIZE)
@@ -89,6 +104,11 @@ export default async function AdminMembersPage({
       .skip((unverifiedPage - 1) * PAGE_SIZE)
       .limit(PAGE_SIZE)
       .lean(),
+    User.find({ status: "suspended" })
+      .sort({ name: 1 })
+      .skip((blockedPage - 1) * PAGE_SIZE)
+      .limit(PAGE_SIZE)
+      .lean(),
     Role.find().sort({ name: 1 }).lean(),
   ]);
 
@@ -98,6 +118,7 @@ export default async function AdminMembersPage({
         ...pending.map((user) => user._id),
         ...approvedUsers.map((user) => user._id),
         ...unverifiedUsers.map((user) => user._id),
+        ...blockedUsers.map((user) => user._id),
       ],
     },
   }).populate<{ companyId: ICompany }>("companyId");
@@ -126,6 +147,7 @@ export default async function AdminMembersPage({
           <TabsTrigger value="pending">Pending registrations</TabsTrigger>
           <TabsTrigger value="all">All members</TabsTrigger>
           <TabsTrigger value="unverified">Unverified</TabsTrigger>
+          <TabsTrigger value="blocked">Blocked</TabsTrigger>
         </TabsList>
 
         <TabsContent value="pending" className="flex flex-col gap-4">
@@ -178,7 +200,7 @@ export default async function AdminMembersPage({
             page={pendingPage}
             totalPages={totalPendingPages}
             hrefFor={(page) =>
-              buildMembersHref({ tab: "pending", pendingPage: page, allPage, unverifiedPage })
+              buildMembersHref({ tab: "pending", pendingPage: page, allPage, unverifiedPage, blockedPage })
             }
           />
         </TabsContent>
@@ -197,6 +219,7 @@ export default async function AdminMembersPage({
                     <TableHead>Company</TableHead>
                     <TableHead>Roles</TableHead>
                     <TableHead>Registered</TableHead>
+                    {canManageMembers && <TableHead className="text-right">Actions</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -222,6 +245,14 @@ export default async function AdminMembersPage({
                           </div>
                         </TableCell>
                         <TableCell>{user.createdAt.toLocaleDateString()}</TableCell>
+                        {canManageMembers && (
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <BlockMemberButton userId={user._id.toString()} />
+                              <RemoveMemberButton userId={user._id.toString()} />
+                            </div>
+                          </TableCell>
+                        )}
                       </TableRow>
                     );
                   })}
@@ -233,7 +264,7 @@ export default async function AdminMembersPage({
             page={allPage}
             totalPages={totalAllPages}
             hrefFor={(page) =>
-              buildMembersHref({ tab: "all", pendingPage, allPage: page, unverifiedPage })
+              buildMembersHref({ tab: "all", pendingPage, allPage: page, unverifiedPage, blockedPage })
             }
           />
         </TabsContent>
@@ -278,7 +309,61 @@ export default async function AdminMembersPage({
             page={unverifiedPage}
             totalPages={totalUnverifiedPages}
             hrefFor={(page) =>
-              buildMembersHref({ tab: "unverified", pendingPage, allPage, unverifiedPage: page })
+              buildMembersHref({
+                tab: "unverified",
+                pendingPage,
+                allPage,
+                unverifiedPage: page,
+                blockedPage,
+              })
+            }
+          />
+        </TabsContent>
+
+        <TabsContent value="blocked" className="flex flex-col gap-4">
+          {blockedUsers.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No blocked members.</p>
+          ) : (
+            <div className="overflow-x-auto rounded-xl ring-1 ring-foreground/10">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Company</TableHead>
+                    {canManageMembers && <TableHead className="text-right">Actions</TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {blockedUsers.map((user) => {
+                    const company = companyByUserId.get(user._id.toString());
+                    return (
+                      <TableRow key={user._id.toString()}>
+                        <TableCell>{user.name}</TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>{user.phone}</TableCell>
+                        <TableCell>{company?.name ?? "—"}</TableCell>
+                        {canManageMembers && (
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <UnblockMemberButton userId={user._id.toString()} />
+                              <RemoveMemberButton userId={user._id.toString()} />
+                            </div>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+          <PaginationLinks
+            page={blockedPage}
+            totalPages={totalBlockedPages}
+            hrefFor={(page) =>
+              buildMembersHref({ tab: "blocked", pendingPage, allPage, unverifiedPage, blockedPage: page })
             }
           />
         </TabsContent>

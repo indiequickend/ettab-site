@@ -3,11 +3,17 @@ export const PERMISSIONS = [
   "roles.assign",
   "members.approve",
   "members.create",
+  "members.manage",
+  "companies.manage",
+  "properties.view",
+  "groupTours.view",
+  "vehicles.view",
   "settings.manage",
   "company.manage_own",
   "property.manage_own",
   "serviceArea.manage_own",
   "groupTour.manage_own",
+  "vehicle.manage_own",
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
@@ -17,11 +23,17 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   "roles.assign": "Assign roles to members",
   "members.approve": "Approve members",
   "members.create": "Create members",
+  "members.manage": "Block or remove members",
+  "companies.manage": "List and remove companies",
+  "properties.view": "View all properties",
+  "groupTours.view": "View all group tours",
+  "vehicles.view": "View all vehicles",
   "settings.manage": "Manage settings",
   "company.manage_own": "Manage own company",
   "property.manage_own": "Manage own properties",
   "serviceArea.manage_own": "Manage own service areas",
   "groupTour.manage_own": "Manage own group tours",
+  "vehicle.manage_own": "Manage own vehicles",
 };
 
 export const ADMIN_AREA_ROLE_NAMES = ["superadmin", "admin"] as const;

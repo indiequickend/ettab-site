@@ -3,18 +3,21 @@ import Link from "next/link";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireMemberSession } from "@/lib/company-context";
 import { searchByPlace } from "@/lib/search";
+import type { MemberType } from "@/models";
+import { MemberTypeFilter } from "./member-type-filter";
 import { PlaceSearchInput } from "./place-search-input";
 import { SearchResultCard } from "./search-result-card";
 
 export default async function SearchPage({
   searchParams,
 }: {
-  searchParams: Promise<{ placeId?: string }>;
+  searchParams: Promise<{ placeId?: string; types?: string }>;
 }) {
   await requireMemberSession();
-  const { placeId } = await searchParams;
+  const { placeId, types } = await searchParams;
+  const memberTypes = types ? (types.split(",").filter(Boolean) as MemberType[]) : undefined;
   const { place, results } = placeId
-    ? await searchByPlace(placeId)
+    ? await searchByPlace(placeId, memberTypes)
     : { place: null, results: [] };
 
   return (
@@ -30,6 +33,7 @@ export default async function SearchPage({
       </div>
 
       <PlaceSearchInput initialPlace={place ?? undefined} />
+      <MemberTypeFilter />
 
       {placeId && !place && (
         <Card>
@@ -47,7 +51,7 @@ export default async function SearchPage({
           <CardHeader>
             <CardTitle>No members found at {place.name} yet</CardTitle>
             <CardDescription>
-              No properties or service areas are registered there yet.
+              No properties, vehicles, or service areas are registered there yet.
             </CardDescription>
           </CardHeader>
         </Card>

@@ -5,12 +5,13 @@ import { revalidatePath } from "next/cache";
 import { Types } from "mongoose";
 
 import { authOptions } from "@/lib/auth-options";
+import { removeOrphanedCompanies } from "@/lib/admin-cascade";
 import { connectToDatabase } from "@/lib/mongodb";
 import { getSessionPermissions, hasPermission } from "@/lib/permissions";
 import { sendApprovalDecisionEmail, sendVerificationEmail } from "@/lib/resend";
 import { generateVerificationToken } from "@/lib/tokens";
 import { approveMemberSchema, rejectMemberSchema } from "@/lib/validation/admin";
-import { User } from "@/models";
+import { CompanyPartner, Role, User } from "@/models";
 
 export interface MemberDecisionState {
   formError?: string;
@@ -26,6 +27,29 @@ async function requireMembersApprovePermission() {
     return { error: "You do not have permission to do this." } as const;
   }
   return { session } as const;
+}
+
+async function requireMembersManagePermission() {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return { error: "Not authenticated." } as const;
+  }
+  const permissions = await getSessionPermissions(session.user.roles);
+  if (!hasPermission(permissions, "members.manage")) {
+    return { error: "You do not have permission to do this." } as const;
+  }
+  return { session } as const;
+}
+
+async function isLastSuperadmin(userId: string): Promise<boolean> {
+  const superadminRole = await Role.findOne({ name: "superadmin" });
+  if (!superadminRole) return false;
+  const user = await User.findById(userId);
+  if (!user || !user.roleIds.some((id) => id.equals(superadminRole._id))) {
+    return false;
+  }
+  const superadminCount = await User.countDocuments({ roleIds: superadminRole._id });
+  return superadminCount <= 1;
 }
 
 export async function approveMemberAction(
@@ -153,5 +177,117 @@ export async function rejectMemberAction(
   }
 
   revalidatePath("/admin/members");
+  return {};
+}
+
+export async function blockMemberAction(
+  _prevState: MemberDecisionState,
+  formData: FormData
+): Promise<MemberDecisionState> {
+  const auth = await requireMembersManagePermission();
+  if ("error" in auth) {
+    return { formError: auth.error };
+  }
+
+  const parsed = approveMemberSchema.safeParse({ userId: formData.get("userId") });
+  if (!parsed.success) {
+    return { formError: "Invalid request." };
+  }
+
+  await connectToDatabase();
+  const user = await User.findById(parsed.data.userId);
+  if (!user) {
+    return { formError: "This member could not be found." };
+  }
+  if (user._id.toString() === auth.session.user.id) {
+    return { formError: "You cannot block your own account." };
+  }
+  if (user.status !== "approved") {
+    return { formError: "Only approved members can be blocked." };
+  }
+  if (await isLastSuperadmin(user._id.toString())) {
+    return { formError: "Cannot block the last superadmin." };
+  }
+
+  user.status = "suspended";
+  await user.save();
+
+  const partners = await CompanyPartner.find({ userId: user._id, status: "active" }).lean();
+  await removeOrphanedCompanies(partners.map((partner) => partner.companyId));
+
+  revalidatePath("/admin/members");
+  revalidatePath("/admin/companies");
+  revalidatePath("/admin/properties");
+  revalidatePath("/admin/group-tours");
+  return {};
+}
+
+export async function unblockMemberAction(
+  _prevState: MemberDecisionState,
+  formData: FormData
+): Promise<MemberDecisionState> {
+  const auth = await requireMembersManagePermission();
+  if ("error" in auth) {
+    return { formError: auth.error };
+  }
+
+  const parsed = approveMemberSchema.safeParse({ userId: formData.get("userId") });
+  if (!parsed.success) {
+    return { formError: "Invalid request." };
+  }
+
+  await connectToDatabase();
+  const user = await User.findById(parsed.data.userId);
+  if (!user) {
+    return { formError: "This member could not be found." };
+  }
+  if (user.status !== "suspended") {
+    return { formError: "This member is not blocked." };
+  }
+
+  user.status = "approved";
+  await user.save();
+
+  revalidatePath("/admin/members");
+  return {};
+}
+
+export async function removeMemberAction(
+  _prevState: MemberDecisionState,
+  formData: FormData
+): Promise<MemberDecisionState> {
+  const auth = await requireMembersManagePermission();
+  if ("error" in auth) {
+    return { formError: auth.error };
+  }
+
+  const parsed = approveMemberSchema.safeParse({ userId: formData.get("userId") });
+  if (!parsed.success) {
+    return { formError: "Invalid request." };
+  }
+
+  await connectToDatabase();
+  const user = await User.findById(parsed.data.userId);
+  if (!user) {
+    return { formError: "This member could not be found." };
+  }
+  if (user._id.toString() === auth.session.user.id) {
+    return { formError: "You cannot remove your own account." };
+  }
+  if (await isLastSuperadmin(user._id.toString())) {
+    return { formError: "Cannot remove the last superadmin." };
+  }
+
+  const partners = await CompanyPartner.find({ userId: user._id }).lean();
+  const companyIds = partners.map((partner) => partner.companyId);
+
+  await CompanyPartner.deleteMany({ userId: user._id });
+  await user.deleteOne();
+  await removeOrphanedCompanies(companyIds);
+
+  revalidatePath("/admin/members");
+  revalidatePath("/admin/companies");
+  revalidatePath("/admin/properties");
+  revalidatePath("/admin/group-tours");
   return {};
 }

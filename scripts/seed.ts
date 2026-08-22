@@ -14,12 +14,25 @@ async function main() {
     { name: "superadmin", permissions: ["*"], isSystem: true },
     {
       name: "admin",
-      permissions: ["members.approve", "settings.manage"],
+      permissions: [
+        "members.approve",
+        "members.manage",
+        "companies.manage",
+        "properties.view",
+        "groupTours.view",
+        "vehicles.view",
+        "settings.manage",
+      ],
       isSystem: true,
     },
     {
       name: "member",
-      permissions: ["company.manage_own", "property.manage_own", "serviceArea.manage_own"],
+      permissions: [
+        "company.manage_own",
+        "property.manage_own",
+        "serviceArea.manage_own",
+        "vehicle.manage_own",
+      ],
       isSystem: true,
     },
   ];

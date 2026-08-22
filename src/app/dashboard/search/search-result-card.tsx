@@ -87,6 +87,62 @@ export function SearchResultCard({ result }: { result: SearchResultCompany }) {
           </div>
         )}
 
+        {result.matchedVehicles.length > 0 && (
+          <div className="flex flex-col gap-3">
+            {result.matchedVehicles.map((vehicle) => (
+              <div key={vehicle.id} className="rounded-lg bg-muted/40 p-3 text-sm">
+                <p className="font-medium">{vehicle.name}</p>
+                <p className="text-muted-foreground">
+                  {[vehicle.vehicleType, vehicle.capacity ? `${vehicle.capacity} seats` : null]
+                    .filter(Boolean)
+                    .join(" · ") || "—"}
+                </p>
+                {(vehicle.rateB2B || vehicle.rateB2C) && (
+                  <p className="text-muted-foreground">
+                    {vehicle.rateB2B ? `B2B: Rs. ${vehicle.rateB2B}` : null}
+                    {vehicle.rateB2B && vehicle.rateB2C ? " · " : null}
+                    {vehicle.rateB2C ? `B2C: Rs. ${vehicle.rateB2C}` : null}
+                  </p>
+                )}
+                {(vehicle.googleBusinessLink || vehicle.facebookLink || vehicle.website) && (
+                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                    {vehicle.googleBusinessLink && (
+                      <a
+                        href={vehicle.googleBusinessLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary underline underline-offset-2"
+                      >
+                        Google Business
+                      </a>
+                    )}
+                    {vehicle.facebookLink && (
+                      <a
+                        href={vehicle.facebookLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary underline underline-offset-2"
+                      >
+                        Facebook
+                      </a>
+                    )}
+                    {vehicle.website && (
+                      <a
+                        href={vehicle.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary underline underline-offset-2"
+                      >
+                        Website
+                      </a>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="flex flex-col gap-2">
           {result.partners.map((partner) => (
             <a

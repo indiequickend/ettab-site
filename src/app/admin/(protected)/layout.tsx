@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LayoutDashboard, Users, ShieldCheck, Settings } from "lucide-react";
+import { LayoutDashboard, Users, ShieldCheck, Settings, Building2, Hotel, CalendarRange, Car } from "lucide-react";
 
 import { AdminSignOutButton } from "@/app/admin/sign-out-button";
 import { BottomNav, type BottomNavItem } from "@/components/bottom-nav";
@@ -18,6 +18,32 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
       show: hasPermission(permissions, "members.approve"),
     },
     {
+      href: "/admin/companies",
+      label: "Companies",
+      icon: Building2,
+      show: hasPermission(permissions, "companies.manage"),
+    },
+    {
+      href: "/admin/properties",
+      label: "Properties",
+      icon: Hotel,
+      show: hasPermission(permissions, "properties.view"),
+    },
+    {
+      href: "/admin/group-tours",
+      label: "Group tours",
+      icon: CalendarRange,
+      show: hasPermission(permissions, "groupTours.view"),
+    },
+    {
+      href: "/admin/vehicles",
+      label: "Vehicles",
+      icon: Car,
+      show: hasPermission(permissions, "vehicles.view"),
+    },
+  ];
+  const overflowNavLinks = [
+    {
       href: "/admin/roles",
       label: "Roles",
       icon: ShieldCheck,
@@ -31,11 +57,16 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
     },
   ];
   const visibleNavLinks = navLinks.filter((link) => link.show);
-  const bottomNavItems: BottomNavItem[] = visibleNavLinks.map(({ href, label, icon: Icon }) => ({
-    href,
-    label,
-    icon: <Icon className="size-5" aria-hidden="true" />,
-  }));
+  const visibleOverflowLinks = overflowNavLinks.filter((link) => link.show);
+  const toNavItems = (links: typeof navLinks): BottomNavItem[] =>
+    links.map(({ href, label, icon: Icon }) => ({
+      href,
+      label,
+      icon: <Icon className="size-5" aria-hidden="true" />,
+    }));
+  const bottomNavItems = toNavItems(visibleNavLinks);
+  const bottomNavOverflowItems = toNavItems(visibleOverflowLinks);
+  const headerNavLinks = [...visibleNavLinks, ...visibleOverflowLinks];
 
   return (
     <div className="flex flex-1 flex-col pb-20 md:pb-0">
@@ -43,7 +74,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
         <div className="hidden items-center gap-6 md:flex">
           <span className="font-heading text-sm font-semibold tracking-tight">ETTAB Admin</span>
           <nav className="flex items-center gap-4">
-            {visibleNavLinks.map((link) => (
+            {headerNavLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
@@ -63,7 +94,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
         </div>
       </header>
       <main className="flex flex-1 flex-col px-4 py-8 sm:px-6">{children}</main>
-      <BottomNav items={bottomNavItems} />
+      <BottomNav items={bottomNavItems} overflowItems={bottomNavOverflowItems} />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { SearchIcon } from "lucide-react";
 
 import {
@@ -23,6 +23,7 @@ export function PlaceSearchInput({
   initialPlace?: { name: string };
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState(initialPlace?.name ?? "");
   const [options, setOptions] = useState<PlaceOption[]>([]);
@@ -88,7 +89,9 @@ export function PlaceSearchInput({
                     onSelect={() => {
                       setQuery(option.name);
                       setOpen(false);
-                      router.push(`/dashboard/search?placeId=${option.id}`);
+                      const params = new URLSearchParams(searchParams.toString());
+                      params.set("placeId", option.id);
+                      router.push(`/dashboard/search?${params.toString()}`);
                     }}
                   >
                     {option.name}

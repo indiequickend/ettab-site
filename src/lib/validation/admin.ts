@@ -36,3 +36,7 @@ export const assignRolesSchema = z.object({
   userId: z.string().min(1),
   roleIds: z.array(z.string().min(1)).min(1, "Select at least one role."),
 });
+
+export const deleteCompanySchema = z.object({
+  companyId: z.string().min(1),
+});

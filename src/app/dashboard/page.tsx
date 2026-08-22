@@ -65,6 +65,11 @@ export default async function DashboardPage({
             My Group Tours
           </Link>
         )}
+        {memberTypes.includes("car_vendor") && (
+          <Link href="/dashboard/vehicles" className={cn(buttonVariants({ variant: "outline" }))}>
+            My Vehicles
+          </Link>
+        )}
         <Link
           href="/dashboard/account"
           className={cn(buttonVariants({ variant: "outline" }), "hidden md:inline-flex")}
