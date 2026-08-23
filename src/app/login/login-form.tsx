@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { useTopLoader } from "nextjs-toploader";
@@ -73,7 +74,12 @@ export function LoginForm() {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="password">Password</Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="password">Password</Label>
+          <Link href="/forgot-password" className="text-sm underline">
+            Forgot password?
+          </Link>
+        </div>
         <Input id="password" name="password" type="password" required />
       </div>
 

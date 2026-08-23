@@ -98,6 +98,24 @@ export async function sendPartnerInviteEmail(
   });
 }
 
+export async function sendPasswordResetEmail(
+  to: string,
+  name: string,
+  resetUrl: string
+): Promise<void> {
+  await getResendClient().emails.send({
+    from: process.env.RESEND_FROM_EMAIL ?? "ETTAB Members <onboarding@resend.dev>",
+    to,
+    subject: "Reset your ETTAB Member password",
+    html: `
+      <p>Hi ${name},</p>
+      <p>We received a request to reset your ETTAB Member password. Click the link below to choose a new one:</p>
+      <p><a href="${resetUrl}">${resetUrl}</a></p>
+      <p>This link expires in 1 hour. If you didn't request this, you can ignore this email - your password won't be changed.</p>
+    `,
+  });
+}
+
 export async function sendApprovalDecisionEmail(
   to: string,
   name: string,

@@ -18,6 +18,8 @@ export interface IUser {
   roleIds: Types.ObjectId[];
   emailVerificationTokenHash: string | null;
   emailVerificationTokenExpiresAt: Date | null;
+  passwordResetTokenHash: string | null;
+  passwordResetTokenExpiresAt: Date | null;
   approvedBy: Types.ObjectId | null;
   approvedAt: Date | null;
   rejectedBy: Types.ObjectId | null;
@@ -42,6 +44,8 @@ const userSchema = new Schema<IUser>(
     roleIds: { type: [Schema.Types.ObjectId], ref: "Role", default: [] },
     emailVerificationTokenHash: { type: String, default: null },
     emailVerificationTokenExpiresAt: { type: Date, default: null },
+    passwordResetTokenHash: { type: String, default: null },
+    passwordResetTokenExpiresAt: { type: Date, default: null },
     approvedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
     approvedAt: { type: Date, default: null },
     rejectedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
