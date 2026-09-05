@@ -12,8 +12,9 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { getAccountStatus } from "@/lib/account-status";
 import { RATE_LIMIT_ERROR_CODE, rateLimitMessage, statusRejectionMessage } from "@/lib/auth-messages";
+import { safeCallbackUrl } from "@/lib/callback-url";
 
-export function LoginForm() {
+export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
   const router = useRouter();
   const topLoader = useTopLoader();
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +60,7 @@ export function LoginForm() {
       }
 
       // Navigation takes over the progress bar from here; it completes on route change.
-      router.push("/dashboard");
+      router.push(safeCallbackUrl(callbackUrl, "/dashboard"));
       router.refresh();
     } finally {
       setPending(false);
@@ -70,17 +71,17 @@ export function LoginForm() {
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="email">Email</Label>
-        <Input id="email" name="email" type="email" required />
+        <Input id="email" name="email" type="email" tabIndex={1} required />
       </div>
 
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center justify-between">
           <Label htmlFor="password">Password</Label>
-          <Link href="/forgot-password" className="text-sm underline">
+          <Link href="/forgot-password" className="text-sm underline" tabIndex={4}>
             Forgot password?
           </Link>
         </div>
-        <Input id="password" name="password" type="password" required />
+        <Input id="password" name="password" type="password" tabIndex={2} required />
       </div>
 
       {error && (
@@ -89,7 +90,7 @@ export function LoginForm() {
         </Alert>
       )}
 
-      <Button type="submit" disabled={pending} className="w-full">
+      <Button type="submit" disabled={pending} className="w-full" tabIndex={3}>
         {pending ? "Logging in..." : "Log in"}
       </Button>
     </form>

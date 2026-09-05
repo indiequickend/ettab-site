@@ -14,11 +14,15 @@ export async function middleware(req: NextRequest) {
 
   if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
     if (!token || !roles.some((role) => ADMIN_AREA_ROLES.includes(role))) {
-      return NextResponse.redirect(new URL("/admin/login", req.url));
+      const url = new URL("/admin/login", req.url);
+      url.searchParams.set("callbackUrl", pathname + req.nextUrl.search);
+      return NextResponse.redirect(url);
     }
   } else if (pathname.startsWith("/dashboard")) {
     if (!token) {
-      return NextResponse.redirect(new URL("/login", req.url));
+      const url = new URL("/login", req.url);
+      url.searchParams.set("callbackUrl", pathname + req.nextUrl.search);
+      return NextResponse.redirect(url);
     }
   }
 

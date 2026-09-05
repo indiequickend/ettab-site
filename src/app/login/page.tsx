@@ -3,7 +3,13 @@ import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoginForm } from "./login-form";
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ callbackUrl?: string }>;
+}) {
+  const { callbackUrl } = await searchParams;
+
   return (
     <main className="flex flex-1 flex-col items-center justify-center px-4 py-10">
       <Card className="w-full max-w-md">
@@ -18,7 +24,7 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <LoginForm />
+          <LoginForm callbackUrl={callbackUrl} />
         </CardContent>
       </Card>
     </main>

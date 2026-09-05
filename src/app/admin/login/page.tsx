@@ -1,7 +1,13 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminLoginForm } from "./admin-login-form";
 
-export default function AdminLoginPage() {
+export default async function AdminLoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ callbackUrl?: string }>;
+}) {
+  const { callbackUrl } = await searchParams;
+
   return (
     <main className="flex flex-1 flex-col items-center justify-center px-4 py-10">
       <Card className="w-full max-w-md">
@@ -12,7 +18,7 @@ export default function AdminLoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <AdminLoginForm />
+          <AdminLoginForm callbackUrl={callbackUrl} />
         </CardContent>
       </Card>
     </main>

@@ -1,9 +1,17 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
 
 import { buttonVariants } from "@/components/ui/button";
+import { authOptions } from "@/lib/auth-options";
 import { cn } from "@/lib/utils";
 
-export default function Home() {
+export default async function Home() {
+  const session = await getServerSession(authOptions);
+  if (session) {
+    redirect("/dashboard");
+  }
+
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-4 px-4 py-16 text-center">
       <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">

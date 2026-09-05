@@ -10,8 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { RATE_LIMIT_ERROR_CODE, rateLimitMessage } from "@/lib/auth-messages";
+import { safeCallbackUrl } from "@/lib/callback-url";
 
-export function AdminLoginForm() {
+export function AdminLoginForm({ callbackUrl }: { callbackUrl?: string }) {
   const router = useRouter();
   const topLoader = useTopLoader();
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +50,7 @@ export function AdminLoginForm() {
       }
 
       // Navigation takes over the progress bar from here; it completes on route change.
-      router.push("/admin");
+      router.push(safeCallbackUrl(callbackUrl, "/admin"));
       router.refresh();
     } finally {
       setPending(false);

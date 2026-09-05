@@ -31,17 +31,11 @@ export default async function DashboardPage({
         </p> */}
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Link
-          href="/dashboard/search"
-          className={cn(buttonVariants({ variant: "outline" }), "hidden md:inline-flex")}
-        >
+      <div className="flex flex-wrap gap-2 md:hidden">
+        <Link href="/dashboard/search" className={cn(buttonVariants({ variant: "outline" }))}>
           Find a member
         </Link>
-        <Link
-          href="/dashboard/company"
-          className={cn(buttonVariants({ variant: "outline" }), "hidden md:inline-flex")}
-        >
+        <Link href="/dashboard/company" className={cn(buttonVariants({ variant: "outline" }))}>
           My company
         </Link>
         {memberTypes.includes("hotelier") && (
@@ -70,15 +64,10 @@ export default async function DashboardPage({
             My Vehicles
           </Link>
         )}
-        <Link
-          href="/dashboard/account"
-          className={cn(buttonVariants({ variant: "outline" }), "hidden md:inline-flex")}
-        >
+        <Link href="/dashboard/account" className={cn(buttonVariants({ variant: "outline" }))}>
           Account settings
         </Link>
-        <div className="hidden md:block">
-          <SignOutButton />
-        </div>
+        <SignOutButton />
       </div>
 
       <div className="flex flex-col gap-3">
