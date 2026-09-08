@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/submit-button";
@@ -87,13 +88,11 @@ export function GroupTourForm({
       <div className="grid grid-cols-2 gap-4">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="startDate">Start date</Label>
-          <Input
+          <DatePicker
             id="startDate"
             name="startDate"
-            type="date"
-            lang="en-GB"
             value={startDate}
-            onChange={(event) => setStartDate(event.target.value)}
+            onChange={setStartDate}
             required
           />
           {state.fieldErrors?.startDate && (
@@ -102,13 +101,11 @@ export function GroupTourForm({
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="endDate">End date</Label>
-          <Input
+          <DatePicker
             id="endDate"
             name="endDate"
-            type="date"
-            lang="en-GB"
             value={endDate}
-            onChange={(event) => setEndDate(event.target.value)}
+            onChange={setEndDate}
             required
           />
           {state.fieldErrors?.endDate && (
