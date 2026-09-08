@@ -9,7 +9,7 @@ const groupTourFieldsShape = {
   bookedSeats: z.coerce.number().int().nonnegative().default(0),
   rateB2B: z.string().trim().optional(),
   rateB2C: z.string().trim().optional(),
-  description: z.string().min(1, "Please add a description."),
+  description: z.string().optional(),
 };
 
 function requiresValidDateRange(data: { startDate: Date; endDate: Date }) {

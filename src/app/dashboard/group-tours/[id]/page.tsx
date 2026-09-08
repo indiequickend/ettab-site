@@ -38,7 +38,7 @@ export default async function GroupTourDetailPage({
     notFound();
   }
 
-  const safeDescription = sanitizeDescription(tour.description);
+  const safeDescription = tour.description ? sanitizeDescription(tour.description) : null;
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8">

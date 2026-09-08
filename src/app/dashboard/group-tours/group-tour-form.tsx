@@ -24,7 +24,7 @@ export interface GroupTourFormValues {
   bookedSeats: number;
   rateB2B: string | null;
   rateB2C: string | null;
-  description: string;
+  description: string | null;
 }
 
 const initialState: GroupTourActionState = {};
@@ -91,6 +91,7 @@ export function GroupTourForm({
             id="startDate"
             name="startDate"
             type="date"
+            lang="en-GB"
             value={startDate}
             onChange={(event) => setStartDate(event.target.value)}
             required
@@ -105,6 +106,7 @@ export function GroupTourForm({
             id="endDate"
             name="endDate"
             type="date"
+            lang="en-GB"
             value={endDate}
             onChange={(event) => setEndDate(event.target.value)}
             required
@@ -185,7 +187,7 @@ export function GroupTourForm({
 
       <div className="flex flex-col gap-1.5">
         <Label>Description</Label>
-        <TourDescriptionEditor defaultValue={tour?.description} />
+        <TourDescriptionEditor defaultValue={tour?.description ?? ""} />
         {state.fieldErrors?.description && (
           <p className="text-sm text-destructive">{state.fieldErrors.description[0]}</p>
         )}

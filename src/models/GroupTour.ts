@@ -11,7 +11,7 @@ export interface IGroupTour {
   bookedSeats: number;
   rateB2B: string | null;
   rateB2C: string | null;
-  description: string;
+  description: string | null;
   isFull: boolean;
   createdBy: Types.ObjectId;
   createdAt: Date;
@@ -29,7 +29,7 @@ const groupTourSchema = new Schema<IGroupTour>(
     bookedSeats: { type: Number, required: true, default: 0 },
     rateB2B: { type: String, default: null },
     rateB2C: { type: String, default: null },
-    description: { type: String, required: true },
+    description: { type: String, default: null },
     isFull: { type: Boolean, required: true, default: false },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
   },

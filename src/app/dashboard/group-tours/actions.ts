@@ -53,7 +53,7 @@ export async function createGroupTourAction(
     bookedSeats: formData.get("bookedSeats") || undefined,
     rateB2B: formData.get("rateB2B") || undefined,
     rateB2C: formData.get("rateB2C") || undefined,
-    description: formData.get("description"),
+    description: formData.get("description") || undefined,
   });
   if (!parsed.success) {
     return { fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]> };
@@ -76,7 +76,7 @@ export async function createGroupTourAction(
     bookedSeats: parsed.data.bookedSeats,
     rateB2B: parsed.data.rateB2B || null,
     rateB2C: parsed.data.rateB2C || null,
-    description: sanitizeDescription(parsed.data.description),
+    description: parsed.data.description ? sanitizeDescription(parsed.data.description) : null,
     createdBy: auth.userId,
   });
 
@@ -101,7 +101,7 @@ export async function updateGroupTourAction(
     bookedSeats: formData.get("bookedSeats") || undefined,
     rateB2B: formData.get("rateB2B") || undefined,
     rateB2C: formData.get("rateB2C") || undefined,
-    description: formData.get("description"),
+    description: formData.get("description") || undefined,
   });
   if (!parsed.success) {
     return { fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]> };
@@ -128,7 +128,7 @@ export async function updateGroupTourAction(
     bookedSeats: parsed.data.bookedSeats,
     rateB2B: parsed.data.rateB2B || null,
     rateB2C: parsed.data.rateB2C || null,
-    description: sanitizeDescription(parsed.data.description),
+    description: parsed.data.description ? sanitizeDescription(parsed.data.description) : null,
   });
 
   revalidateGroupTourPaths(tour._id.toString());

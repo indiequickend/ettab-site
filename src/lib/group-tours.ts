@@ -23,7 +23,7 @@ export interface ManagedGroupTour extends GroupTourCardData {
 }
 
 export interface GroupTourDetail extends GroupTourCardData {
-  description: string;
+  description: string | null;
   isFull: boolean;
   isOwner: boolean;
   contacts: { id: string; name: string; phone: string }[];
